@@ -30,7 +30,6 @@ def load_mnist_data():
 
     return X, d
 
-
 def downproject_dataset(X, svd_dim=3):
     U, S, V = torch.svd(X.t())  # Assume X is a d x n matrix
 
@@ -50,8 +49,6 @@ def random_dataset(D, d):
 
 
 def all_disjoint_lists(D, s, save_dir=DISJOINT_PAIRS_DIR):
-    elements = range(D)  # Implicit list [0, 1, ..., D-1]
-    all_pairs = []
 
     save_path = None
 
@@ -63,6 +60,9 @@ def all_disjoint_lists(D, s, save_dir=DISJOINT_PAIRS_DIR):
         except FileNotFoundError:
             print("File not found. Creating pairs...")
             pass
+
+    elements = range(D) 
+    all_pairs = []
 
     for I in tqdm(itertools.combinations(elements, s), "Creating Pairs", total=math.comb(D, s)):
         remaining = set(elements) - set(I)
