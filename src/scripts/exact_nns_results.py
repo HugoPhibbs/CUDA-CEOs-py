@@ -1,7 +1,6 @@
 import faiss
 import numpy as np
 import time
-
 print(faiss.get_num_gpus())
 
 
@@ -18,10 +17,15 @@ Q_gist = Q_gist.reshape(-1, d)
 index = faiss.IndexFlatL2(d)
 index_gpu = faiss.index_cpu_to_gpu(res, 0, index)
 
-start = time.time()
+start = time.time() 
 index_gpu.add(X_gist)
 end = time.time()
 print("Time taken to add vectors:", end - start)
 
-print(index.is_trained)
+print(index.is_trained) 
 
+start = time.time()
+D, I = index_gpu.search(Q_gist, 10)
+end = time.time()
+print("Time taken to all queries:", end - start)
+print("Average query time:", (end - start) / Q_gist.shape[0])
