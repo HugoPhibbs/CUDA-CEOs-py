@@ -1,5 +1,6 @@
 import numpy as np
 import src.scripts.write_load_datasets as write_load_datasets
+import faiss
 
 
 def recall(actual_indices, expected_indices, k):
@@ -36,3 +37,21 @@ def recall(actual_indices, expected_indices, k):
         total += recall_value
 
     return total / n_queries
+
+def perform_exact_nns(X:np.ndarray, Q:np.ndarray, k:int):
+    """
+    Perform exact nearest neighbor search using FAISS.
+
+    Parameters:
+    X (np.ndarray): The dataset to search in. Shape (n, d), where n is the number of samples and d is the dimensionality.
+    Q (np.ndarray): The query points. Shape (n_queries, d), where n_queries is the number of queries.'
+    k (int): The number of nearest neighbors to find
+    Returns:
+    indices (np.ndarray): The indices of the nearest neighbors. Shape (n_queries, k).
+    distances (np.ndarray): The distances to the nearest neighbors. Shape (n_queries, k).
+    """
+    index = faiss.IndexFlatL2(X.shape[1])
+    index.add(X)
+
+    distances, indices = index.search(Q, k)
+    return indices, distances
