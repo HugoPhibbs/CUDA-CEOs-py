@@ -6,7 +6,7 @@ import src.analysis_utils as au
 
 class coCEOsTest(unittest.TestCase):
 
-    def basis_test(self):
+    def test_basic(self):
         n = 10_000
         d = 30
         D = 12
@@ -31,5 +31,41 @@ class coCEOsTest(unittest.TestCase):
         except:
             self.fail("coCEOs indexing raised an exception unexpectedly!")
 
+    def test_gist(self):
+        X, Q = au.write_load_datasets.load_dataset("gist")
+        D = 1024
+        m = 100
 
-        
+        index, R = ceos.indexing_coCEOs(X, D, m)
+
+        k = 10
+        b = 50
+        s_0 = 100
+
+        top_indices, distances = ceos.querying_coCEOs(index, X, R, Q, b, k, s_0, use_faiss_top_k=True)
+
+        top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+        recall_value = au.recall(top_indices, top_indices_exact, k)
+
+        print(f"Recall: {recall_value:.4f}")
+
+
+class hybridCEOsTest(unittest.TestCase):
+
+    def test_gist(self):
+        X, Q = au.write_load_datasets.load_dataset("gist")
+        D = 1024
+        m = 100
+
+        index, R = ceos.indexing_hybridCEOs(X, D, m, 1)
+
+        k = 10
+        b = 50
+        s = 100
+
+        top_indices, distances = ceos.querying_hybridCEOs(index, X, R, Q, k, D, s, b, use_faiss_top_k=True)
+
+        top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+        recall_value = au.recall(top_indices, top_indices_exact, k)
+
+        print(f"Recall: {recall_value:.4f}")
