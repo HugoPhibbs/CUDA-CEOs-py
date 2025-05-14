@@ -52,12 +52,13 @@ class coCEOsTest(unittest.TestCase):
 
 class hybridCEOsTest(unittest.TestCase):
 
-    def test_gist(self):
-        X, Q = au.write_load_datasets.load_dataset("gist")
+    def test_msong(self):
+        X, Q = au.write_load_datasets.load_dataset("msong")
         D = 1024
         m = 100
+        s_0 = 1
 
-        index, R = ceos.indexing_hybridCEOs(X, D, m, 1)
+        index, R = ceos.indexing_hybridCEOs(X, D, m, s_0)
 
         k = 10
         b = 50
