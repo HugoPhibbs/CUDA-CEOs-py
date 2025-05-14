@@ -1,7 +1,6 @@
 import numpy as np
 import src.scripts.write_load_datasets as write_load_datasets
-import faiss
-
+import scann
 
 def recall(actual_indices, expected_indices, k):
     """
@@ -38,20 +37,22 @@ def recall(actual_indices, expected_indices, k):
 
     return total / n_queries
 
-def perform_exact_nns(X:np.ndarray, Q:np.ndarray, k:int):
+def perform_exact_nns(X: np.ndarray, Q: np.ndarray, k: int):
     """
-    Perform exact nearest neighbor search using FAISS.
+    Perform exact nearest neighbor search using ScaNN.
 
     Parameters:
-    X (np.ndarray): The dataset to search in. Shape (n, d), where n is the number of samples and d is the dimensionality.
-    Q (np.ndarray): The query points. Shape (n_queries, d), where n_queries is the number of queries.'
-    k (int): The number of nearest neighbors to find
-    Returns:
-    indices (np.ndarray): The indices of the nearest neighbors. Shape (n_queries, k).
-    distances (np.ndarray): The distances to the nearest neighbors. Shape (n_queries, k).
-    """
-    index = faiss.IndexFlatL2(X.shape[1])
-    index.add(X)
+    X (np.ndarray): Dataset to search in. Shape (n, d)
+    Q (np.ndarray): Query points. Shape (n_queries, d)
+    k (int): Number of nearest neighbors to find
 
-    distances, indices = index.search(Q, k)
-    return indices, distances
+    Returns:
+    indices (np.ndarray): Indices of nearest neighbors. Shape (n_queries, k)
+    distances (np.ndarray): Distances to nearest neighbors. Shape (n_queries, k)
+    """
+    searcher = scann.scann_ops_pybind.builder(X, k, "dot_product") \
+        .score_brute_force(True) \
+        .build()
+    
+    indices, distances = searcher.search_batched(Q)
+    return np.array(indices), np.array(distances)
