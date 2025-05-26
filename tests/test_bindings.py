@@ -66,6 +66,8 @@ class hybridCEOsTest(unittest.TestCase):
 
         top_indices, distances = ceos.querying_hybridCEOs(index, X, R, Q, k, D, s, b, use_faiss_top_k=True)
 
+        # TODO, add code here to save the index to disk and load it back, instead of re-indexing
+
         top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
         recall_value = au.recall(top_indices, top_indices_exact, k)
 
