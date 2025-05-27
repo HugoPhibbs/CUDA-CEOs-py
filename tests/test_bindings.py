@@ -1,8 +1,9 @@
 import unittest
 import numpy as np
+import torch
 import cuda_ceos_py as ceos
 import src.analysis_utils as au
-
+import os
 
 class coCEOsTest(unittest.TestCase):
 
@@ -53,14 +54,25 @@ class coCEOsTest(unittest.TestCase):
 class hybridCEOsTest(unittest.TestCase):
 
     def test_msong(self):
-        X, Q = au.write_load_datasets.load_dataset("msong")
+        dataset = "msong"
+        X, Q = au.write_load_datasets.load_dataset(dataset, use_torch=True, use_gpu=True)
+        
         D = 1024
         m = 100
         s_0 = 1
 
-        index, R = ceos.indexing_hybridCEOs(X, D, m, s_0)
+        index_name = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/index_{dataset}_m{m}_D{D}_s0{s_0}.pt"
+        R_name = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/R_{dataset}_m{m}_D{D}_s0{s_0}.pt"
 
-        k = 10
+        if os.path.exists(index_name):
+            index = torch.load(index_name)
+            R = torch.load(R_name)
+        else:
+            index, R = ceos.indexing_hybridCEOs(X, D, m, s_0)
+            torch.save(index, index_name)
+            torch.save(R, R_name)
+
+        k = 50
         b = 50
         s = 100
 
