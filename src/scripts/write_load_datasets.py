@@ -55,7 +55,7 @@ def dataset_bin_paths(dataset_name:str):
     ]   
 
 
-def load_dataset(dataset_name: str):
+def load_dataset(dataset_name: str, use_torch: bool = False, use_gpu: bool = False):
     """
     Load dataset and queries from binary files.
 
@@ -73,6 +73,14 @@ def load_dataset(dataset_name: str):
 
     queries = np.fromfile(query_path, dtype=np.float32)
     queries = queries.reshape((n_queries, d))
+
+    if use_torch:
+        import torch
+        dataset = torch.from_numpy(dataset)
+        queries = torch.from_numpy(queries)
+        if use_gpu:
+            dataset = dataset.cuda()
+            queries = queries.cuda()
 
     return dataset, queries
 
