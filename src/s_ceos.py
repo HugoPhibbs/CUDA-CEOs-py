@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def s_ceos_indexing_s1(X_proj, b: int):
     """
     Parameters:
@@ -27,18 +28,22 @@ def s_ceos_indexing_s1(X_proj, b: int):
 
     return out
 
+
 if __name__ == "__main__":
-    X_proj = np.array([
-        [ 5.5,  5.5,  5.5,  5.5,  5.5,  5.5,  5.5,  5.5,  5.5,  5.5],
-        [-4.5, -3.5, -2.5, -1.5, -0.5,  0.5,  1.5,  2.5,  3.5,  4.5],
-        [ 1.0,  3.0,  5.0,  7.0,  9.0, 11.0, 13.0, 15.0, 17.0, 19.0],
-    ])
-    print(X_proj) 
+    X_proj = np.array(
+        [
+            [0.534, 0.556, 0.545, 0.506, 0.455, 0.403, 0.357, 0.316, 0.283, 0.255],
+            [-0.437, -0.354, -0.248, -0.138, -0.041, 0.037, 0.097, 0.144, 0.18, 0.208],
+            [0.097, 0.303, 0.495, 0.644, 0.745, 0.807, 0.843, 0.863, 0.874, 0.88],
+        ]
+    )
+
+    print(X_proj)
 
     b = 2  # number of top values to keep
 
     index = s_ceos_indexing_s1(X_proj, b)
-    
+
     flat = index.flatten()
     print(flat)
     print(len(flat))
