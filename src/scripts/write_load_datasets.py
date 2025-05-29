@@ -41,7 +41,7 @@ def dataset_txt_to_binary(input_file, output_file):
 
     with open(input_file, "r") as f:
         for i, line in tqdm(enumerate(f), "Reading File", total=n):
-            data[i] = np.fromstring(line, sep=" ", dtype=np.float32)  # Parse efficiently
+            data[i] = np.fromstring(line, sep=" ", dtype=np.float32) 
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)  # Ensure directory exists
     data.tofile(output_file)
