@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import cuda_ceos_py as ceos
 import src.analysis_utils as au
+import os
 
 
 class coCEOsTest(unittest.TestCase):
@@ -55,20 +56,60 @@ class hybridCEOsTest(unittest.TestCase):
     def test_msong(self):
         X, Q = au.write_load_datasets.load_dataset("msong")
         D = 1024
-        m = 100
+        m = 30
         s_0 = 1
 
-        index, R = ceos.indexing_hybridCEOs(X, D, m, s_0)
+        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/gist_index_shuffle_D{D}_m{m}_s0{s_0}.npy"
+        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/gist_index_sums_shuffle_D{D}_m{m}_s0{s_0}.npy"
+        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/gist_R_shuffle_D{D}_m{m}_s0{s_0}.npy"
+
+        if os.path.exists(index_path):
+            index = np.load(index_path)
+            index_sums = np.load(index_sums_path)
+            R = np.load(R_path)
+        else:
+            index, index_sums, R = ceos.indexing_hybridCEOs(X, D, m, s_0)
+            np.save(index_path, index)
+            np.save(index_sums_path, index_sums)
+            np.save(R_path, R)
+
+        print(index[0, 1])
+        print(index[1, 2])  
 
         k = 10
-        b = 50
-        s = 100
+        b = 100
+        s = 50
 
-        top_indices, distances = ceos.querying_hybridCEOs(index, X, R, Q, k, D, s, b, use_faiss_top_k=True)
+        top_indices, distances = ceos.querying_hybridCEOs(index, index_sums, X, R, Q, k, D, s, b, use_faiss_top_k=True)
+
+        print('top indices 0: ', top_indices[0])
+        print('top indices 1: ', top_indices[1])
+
+        print('top distances 0: ', distances[0])
+        print('top distances 1: ', distances[1])
 
         # TODO, add code here to save the index to disk and load it back, instead of re-indexing
 
-        top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/msong_exact_indices_k{k}.npy"
+        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/msong_exact_distances_k{k}.npy"
+
+        if os.path.exists(exact_indices_path) and os.path.exists(exact_distances_path):
+            top_indices_exact = np.load(exact_indices_path)
+            distances_exact = np.load(exact_distances_path)
+        else:
+            top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+            np.save(exact_indices_path, top_indices_exact)
+            np.save(exact_distances_path, distances_exact)
+
+        print('top indices exact 0: ', top_indices_exact[0])
+        print('top distances exact 0: ', distances_exact[0])
+
         recall_value = au.recall(top_indices, top_indices_exact, k)
 
         print(f"Recall: {recall_value:.4f}")
+
+        print(np.dot(Q[0], X[top_indices[0, 5]]))
+        print(X[top_indices[0, 5]])
+        print(np.dot(Q[0], X[top_indices[0, 6]]))
+        print(X[top_indices[0, 6]])
+        
