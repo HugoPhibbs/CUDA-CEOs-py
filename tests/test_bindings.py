@@ -53,15 +53,16 @@ class coCEOsTest(unittest.TestCase):
 
 class hybridCEOsTest(unittest.TestCase):
 
-    def test_msong(self):
-        X, Q = au.write_load_datasets.load_dataset("msong")
+    def test_for_real_dataset(self):
+        dataset_name = "msong"
+        X, Q = au.write_load_datasets.load_dataset(dataset_name)
         D = 1024
-        m = 30
+        m = 10
         s_0 = 1
 
-        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/gist_index_shuffle_D{D}_m{m}_s0{s_0}.npy"
-        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/gist_index_sums_shuffle_D{D}_m{m}_s0{s_0}.npy"
-        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/gist_R_shuffle_D{D}_m{m}_s0{s_0}.npy"
+        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_shuffle_D{D}_m{m}_s0{s_0}.npy"
+        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_shuffle_D{D}_m{m}_s0{s_0}.npy"
+        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_R_shuffle_D{D}_m{m}_s0{s_0}.npy"
 
         if os.path.exists(index_path):
             index = np.load(index_path)
@@ -78,7 +79,7 @@ class hybridCEOsTest(unittest.TestCase):
 
         k = 10
         b = 100
-        s = 50
+        s = 600
 
         top_indices, distances = ceos.querying_hybridCEOs(index, index_sums, X, R, Q, k, D, s, b, use_faiss_top_k=True)
 
@@ -90,8 +91,8 @@ class hybridCEOsTest(unittest.TestCase):
 
         # TODO, add code here to save the index to disk and load it back, instead of re-indexing
 
-        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/msong_exact_indices_k{k}.npy"
-        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/msong_exact_distances_k{k}.npy"
+        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_indices_k{k}.npy"
+        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_distances_k{k}.npy"
 
         if os.path.exists(exact_indices_path) and os.path.exists(exact_distances_path):
             top_indices_exact = np.load(exact_indices_path)
