@@ -60,9 +60,9 @@ class hybridCEOsTest(unittest.TestCase):
         m = 10
         s_0 = 1
 
-        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_shuffle_D{D}_m{m}_s0{s_0}.npy"
-        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_shuffle_D{D}_m{m}_s0{s_0}.npy"
-        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_R_shuffle_D{D}_m{m}_s0{s_0}.npy"
+        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_D{D}_m{m}_s0{s_0}.npy"
+        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_D{D}_m{m}_s0{s_0}.npy"
+        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_R_D{D}_m{m}_s0{s_0}.npy"
 
         if os.path.exists(index_path):
             index = np.load(index_path)
