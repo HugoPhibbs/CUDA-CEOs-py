@@ -3,7 +3,7 @@ import numpy as np
 import cuda_ceos_py as ceos
 import src.analysis_utils as au
 import os
-
+# import torch
 
 class coCEOsTest(unittest.TestCase):
 
@@ -54,11 +54,18 @@ class coCEOsTest(unittest.TestCase):
 class hybridCEOsTest(unittest.TestCase):
 
     def test_for_real_dataset(self):
-        dataset_name = "msong"
+        # dataset_name = "msong"
         X, Q = au.write_load_datasets.load_dataset(dataset_name)
         D = 1024
         m = 10
         s_0 = 1
+
+        X_torch = torch.from_numpy(X).cuda()
+        Q_torch = torch.from_numpy(Q).cuda()
+
+        hybrid_ceos = ceos.HybridCEOs(X_torch, D, m, s_0)
+        hybrid_ceos.index()
+        top_indices, distances = hybrid_ceos.query(Q_torch, k=10, b=100, s=600)
 
         index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_D{D}_m{m}_s0{s_0}.npy"
         index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_D{D}_m{m}_s0{s_0}.npy"
@@ -113,4 +120,4 @@ class hybridCEOsTest(unittest.TestCase):
         print(X[top_indices[0, 5]])
         print(np.dot(Q[0], X[top_indices[0, 6]]))
         print(X[top_indices[0, 6]])
-        
+        pass
