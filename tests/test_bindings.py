@@ -1,3 +1,4 @@
+import time
 import unittest
 import numpy as np
 import cuda_ceos_py as ceos
@@ -78,8 +79,8 @@ class hybridCEOsTest(unittest.TestCase):
         print(index[1, 2])  
 
         k = 10
-        b = 100
-        s = 600
+        b = 50
+        s = 100
 
         top_indices, distances = ceos.querying_hybridCEOs(index, index_sums, X, R, Q, k, D, s, b, use_faiss_top_k=True)
 
@@ -90,6 +91,21 @@ class hybridCEOsTest(unittest.TestCase):
         print('top distances 1: ', distances[1])
 
         # TODO, add code here to save the index to disk and load it back, instead of re-indexing
+
+        _ = ceos.querying_hybridCEOs(index, index_sums, X, R, Q[:10], k, D, s, b, use_faiss_top_k=True)
+
+        # Averaged timing over N trials
+        trials = 10
+        total_ms = 0.0
+
+        for _ in range(trials):
+            R_new = np.random.normal(size=(D, X.shape[1])).astype(np.float32)  # Simulate a new R matrix
+            start = time.time()
+            _ = ceos.querying_hybridCEOs(index, index_sums, X, R_new, Q, k, D, s, b, use_faiss_top_k=True)
+            end = time.time()
+            total_ms += (end - start) * 1000  # milliseconds
+
+        print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
 
         exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_indices_k{k}.npy"
         exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_distances_k{k}.npy"
