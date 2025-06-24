@@ -56,7 +56,7 @@ class hybridCEOsTest(unittest.TestCase):
 
     def test_for_real_dataset(self):
         dataset_name = "msong"
-        X, Q = au.write_load_datasets.load_dataset(dataset_name)
+        X, Q = au.write_load_datasets.load_dataset(dataset_name)        
         D = 1024
         m = 10
         s_0 = 1
@@ -66,7 +66,7 @@ class hybridCEOsTest(unittest.TestCase):
 
         hybrid_ceos = ceos.HybridCEOs(X_torch, D, m, s_0)
 
-        hybrid_ceos.set_use_low_memory_hist(False)
+        hybrid_ceos.set_use_low_memory_hist(True)
 
         index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_D{D}_m{m}_s0{s_0}.pt"
         index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_D{D}_m{m}_s0{s_0}.pt"
@@ -86,23 +86,6 @@ class hybridCEOsTest(unittest.TestCase):
             torch.save(R, R_path)
 
         k = 10
-        b = 50
-        s = 100
-
-        top_indices, distances = hybrid_ceos.query_s01(Q_torch, k, s, b)
-
-        # Averaged timing over N trials
-        trials = 10
-        total_ms = 0.0
-
-        for _ in range(trials):
-            # R_new = np.random.normal(size=(D, X.shape[1])).astype(np.float32)  # Simulate a new R matrix
-            start = time.time()
-            _ = hybrid_ceos.query_s01(Q_torch, k, s, b)
-            end = time.time()
-            total_ms += (end - start) * 1000  # milliseconds
-
-        print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
 
         exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_indices_k{k}.npy"
         exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_distances_k{k}.npy"
@@ -115,7 +98,27 @@ class hybridCEOsTest(unittest.TestCase):
             np.save(exact_indices_path, top_indices_exact)
             np.save(exact_distances_path, distances_exact)
 
-        recall_value = au.recall(top_indices.cpu().numpy(), top_indices_exact, k)
+        b = 50
+        s = 100
 
-        print(f"Recall: {recall_value:.4f}")
+        _ = hybrid_ceos.query_s01(Q_torch, k, s, b)
+
+        # Averaged timing over N trials
+        trials = 10
+        total_ms = 0.0
+        recall_total = 0.0
+
+        for _ in range(trials):
+            # R_new = np.random.normal(size=(D, X.shape[1])).astype(np.float32)  # Simulate a new R matrix
+            start = time.time()
+            top_indices,_ = hybrid_ceos.query_s01(Q_torch, k, s, b)
+            end = time.time()
+            total_ms += (end - start) * 1000  # milliseconds
+
+            recall = au.recall(top_indices.cpu().numpy(), top_indices_exact, k)
+            recall_total += recall
+
+        print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
+
+        print(f"Avg recall over {trials} trials: {recall_total / trials:.4f}")
         
