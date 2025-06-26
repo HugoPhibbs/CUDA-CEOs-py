@@ -55,12 +55,14 @@ class coCEOsTest(unittest.TestCase):
 class hybridCEOsTest(unittest.TestCase):
 
     def test_for_real_dataset(self):
-        dataset_name = "msong"
+        dataset_name = "glove-100" 
         X, Q = au.write_load_datasets.load_dataset(dataset_name)        
         D = 1024
-        m = 10
+        m = 50
         s_0 = 1
         
+        Q = Q[:1000]
+
         X_torch = torch.from_numpy(X).cuda()
         Q_torch = torch.from_numpy(Q).cuda()
 
@@ -94,12 +96,15 @@ class hybridCEOsTest(unittest.TestCase):
             top_indices_exact = np.load(exact_indices_path)
             distances_exact = np.load(exact_distances_path)
         else:
+            print("Performing exact NNS...")
             top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
             np.save(exact_indices_path, top_indices_exact)
             np.save(exact_distances_path, distances_exact)
 
+        print("Exact NNS completed.")
+
         b = 50
-        s = 100
+        s = 12
 
         _ = hybrid_ceos.query_s01(Q_torch, k, s, b)
 
@@ -119,6 +124,5 @@ class hybridCEOsTest(unittest.TestCase):
             recall_total += recall
 
         print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
-
         print(f"Avg recall over {trials} trials: {recall_total / trials:.4f}")
-        
+        print(f"Time per query: {total_ms / trials / Q.shape[0] * 1000:.4f} μs")
