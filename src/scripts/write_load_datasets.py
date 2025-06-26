@@ -3,9 +3,9 @@ import os
 import re
 from tqdm import tqdm
 
-DATA_SET_DIR = "/workspace/CUDA-CEOs/datasets"
+DATASET_DIR = "/workspace/CUDA-CEOs/datasets"
 
-DATA_SET_INFO = {
+DATASET_INFO = {
     "imagenet": {
         "n": 2340373,
         "d": 150,
@@ -25,7 +25,17 @@ DATA_SET_INFO = {
         "n": 624961,
         "d": 300,
         "n_queries": 1000
-    }
+    }, 
+    "sift-128": {
+        "n": 1_000_000,  # Example value, adjust as needed
+        "d": 128,
+        "n_queries": 10000  # Example value, adjust as needed
+    }, 
+    "glove-100": {
+        "n": 1_183_514,  # Example value, adjust as needed
+        "d": 100,
+        "n_queries": 10000  # Example value, adjust as needed
+    },
 }
 
 def parse_n_d_from_filename(filename):
@@ -48,7 +58,7 @@ def dataset_txt_to_binary(input_file, output_file):
     print(f"Wrote {n}x{d} data to {output_file}")
 
 def dataset_bin_paths(dataset_name:str):
-    bin_path = os.path.join(DATA_SET_DIR, "bin", dataset_name)
+    bin_path = os.path.join(DATASET_DIR, "bin", dataset_name)
     return [
         os.path.join(bin_path, f"{dataset_name}_dataset.bin"),
         os.path.join(bin_path, f"{dataset_name}_queries.bin"),
@@ -65,7 +75,7 @@ def load_dataset(dataset_name: str):
     tuple: A tuple containing the dataset and queries as numpy arrays, in that order.
     """
     dataset_path, query_path = dataset_bin_paths(dataset_name)
-    dataset_info = DATA_SET_INFO[dataset_name]
+    dataset_info = DATASET_INFO[dataset_name]
     n, d, n_queries = dataset_info["n"], dataset_info["d"], dataset_info["n_queries"]
 
     dataset = np.fromfile(dataset_path, dtype=np.float32)
