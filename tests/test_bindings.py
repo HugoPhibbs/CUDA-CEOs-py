@@ -1,3 +1,4 @@
+import time
 import unittest
 import numpy as np
 import torch
@@ -87,6 +88,7 @@ class hybridCEOsTest(unittest.TestCase):
         index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_index_sums_D{D}_m{m}_s0{s_0}.pt"
         R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_R_D{D}_m{m}_s0{s_0}.pt"
 
+
         if os.path.exists(index_path):
             index = torch.load(index_path).cuda()
             index_sums = torch.load(index_sums_path).cuda()
@@ -101,7 +103,7 @@ class hybridCEOsTest(unittest.TestCase):
             torch.save(R, R_path)
 
         k = 10
-
+        
         exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_{metric_name}dist_exact_indices_k{k}.npy"
         exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_{metric_name}dist_exact_distances_k{k}.npy"
 
