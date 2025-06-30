@@ -55,24 +55,37 @@ class coCEOsTest(unittest.TestCase):
 class hybridCEOsTest(unittest.TestCase):
 
     def test_for_real_dataset(self):
-        dataset_name = "glove-100" 
+        dataset_name = "nuswide" 
         X, Q = au.write_load_datasets.load_dataset(dataset_name)        
         D = 1024
-        m = 50
+        m = 150
+        s = 50
         s_0 = 1
         
         Q = Q[:1000]
 
+        X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-6)
+        X = Q / (np.linalg.norm(Q, axis=1, keepdims=True) + 1e-6)
+
         X_torch = torch.from_numpy(X).cuda()
         Q_torch = torch.from_numpy(Q).cuda()
 
-        hybrid_ceos = ceos.HybridCEOs(X_torch, D, m, s_0)
+        distance_metric = ceos.DistanceMetric.INNER_PRODUCT
+
+        hybrid_ceos = ceos.HybridCEOs(X_torch, D, m, s_0, distance_metric)
+
+        print(f"\nHist kernel shared memory size: {hybrid_ceos.get_hist_kernel_shared_memory(s)} bytes")
 
         hybrid_ceos.set_use_low_memory_hist(True)
+        hybrid_ceos.set_verbose(False)
+        hybrid_ceos.set_time_it(False)
+        hybrid_ceos.set_hist_kernel_max_dynamic_memory(96 * 1024)
 
-        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_D{D}_m{m}_s0{s_0}.pt"
-        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_D{D}_m{m}_s0{s_0}.pt"
-        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_R_D{D}_m{m}_s0{s_0}.pt"
+        metric_name = str(distance_metric).split(".")[-1].lower()
+
+        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_index_D{D}_m{m}_s0{s_0}.pt"
+        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_index_sums_D{D}_m{m}_s0{s_0}.pt"
+        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_R_D{D}_m{m}_s0{s_0}.pt"
 
         if os.path.exists(index_path):
             index = torch.load(index_path).cuda()
@@ -89,22 +102,27 @@ class hybridCEOsTest(unittest.TestCase):
 
         k = 10
 
-        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_indices_k{k}.npy"
-        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_distances_k{k}.npy"
+        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_{metric_name}dist_exact_indices_k{k}.npy"
+        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_{metric_name}dist_exact_distances_k{k}.npy"
 
         if os.path.exists(exact_indices_path) and os.path.exists(exact_distances_path):
             top_indices_exact = np.load(exact_indices_path)
             distances_exact = np.load(exact_distances_path)
         else:
             print("Performing exact NNS...")
-            top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+            if metric_name == "inner_product":
+                top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+            elif metric_name == "cosine":
+                X_copy = X / np.linalg.norm(X, axis=1, keepdims=True)
+                Q_copy = Q / np.linalg.norm(Q, axis=1, keepdims=True)
+                top_indices_exact, distances_exact = au.perform_exact_nns(X_copy, Q_copy, k)
+                
             np.save(exact_indices_path, top_indices_exact)
             np.save(exact_distances_path, distances_exact)
 
         print("Exact NNS completed.")
 
-        b = 50
-        s = 12
+        b = 4000
 
         _ = hybrid_ceos.query_s01(Q_torch, k, s, b)
 
@@ -117,6 +135,7 @@ class hybridCEOsTest(unittest.TestCase):
             # R_new = np.random.normal(size=(D, X.shape[1])).astype(np.float32)  # Simulate a new R matrix
             start = time.time()
             top_indices,_ = hybrid_ceos.query_s01(Q_torch, k, s, b)
+            torch.cuda.synchronize()
             end = time.time()
             total_ms += (end - start) * 1000  # milliseconds
 
