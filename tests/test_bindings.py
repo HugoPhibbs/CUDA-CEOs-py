@@ -1,10 +1,11 @@
 import time
 import unittest
 import numpy as np
+import torch
 import cuda_ceos_py as ceos
 import src.analysis_utils as au
 import os
-
+import time
 
 class coCEOsTest(unittest.TestCase):
 
@@ -55,78 +56,94 @@ class coCEOsTest(unittest.TestCase):
 class hybridCEOsTest(unittest.TestCase):
 
     def test_for_real_dataset(self):
-        dataset_name = "msong"
-        X, Q = au.write_load_datasets.load_dataset(dataset_name)
+        dataset_name = "nuswide" 
+        X, Q = au.write_load_datasets.load_dataset(dataset_name)        
         D = 1024
-        m = 10
+        m = 150
+        s = 50
         s_0 = 1
+        
+        Q = Q[:1000]
 
-        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_D{D}_m{m}_s0{s_0}.npy"
-        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_index_sums_D{D}_m{m}_s0{s_0}.npy"
-        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_R_D{D}_m{m}_s0{s_0}.npy"
+        X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-6)
+        X = Q / (np.linalg.norm(Q, axis=1, keepdims=True) + 1e-6)
+
+        X_torch = torch.from_numpy(X).cuda()
+        Q_torch = torch.from_numpy(Q).cuda()
+
+        distance_metric = ceos.DistanceMetric.INNER_PRODUCT
+
+        hybrid_ceos = ceos.HybridCEOs(X_torch, D, m, s_0, distance_metric)
+
+        print(f"\nHist kernel shared memory size: {hybrid_ceos.get_hist_kernel_shared_memory(s)} bytes")
+
+        hybrid_ceos.set_use_low_memory_hist(True)
+        hybrid_ceos.set_verbose(False)
+        hybrid_ceos.set_time_it(False)
+        hybrid_ceos.set_hist_kernel_max_dynamic_memory(96 * 1024)
+
+        metric_name = str(distance_metric).split(".")[-1].lower()
+
+        index_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_index_D{D}_m{m}_s0{s_0}.pt"
+        index_sums_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_index_sums_D{D}_m{m}_s0{s_0}.pt"
+        R_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_indices/{dataset_name}_{metric_name}dist_R_D{D}_m{m}_s0{s_0}.pt"
+
 
         if os.path.exists(index_path):
-            index = np.load(index_path)
-            index_sums = np.load(index_sums_path)
-            R = np.load(R_path)
-        else:
-            index, index_sums, R = ceos.indexing_hybridCEOs(X, D, m, s_0)
-            np.save(index_path, index)
-            np.save(index_sums_path, index_sums)
-            np.save(R_path, R)
+            index = torch.load(index_path).cuda()
+            index_sums = torch.load(index_sums_path).cuda()
+            R = torch.load(R_path).cuda()
 
-        print(index[0, 1])
-        print(index[1, 2])  
+            hybrid_ceos.load_index(index, index_sums, R)
+        else:
+            index, index_sums, R = hybrid_ceos.index()
+
+            torch.save(index, index_path)
+            torch.save(index_sums, index_sums_path)
+            torch.save(R, R_path)
 
         k = 10
-        b = 50
-        s = 100
-
-        top_indices, distances = ceos.querying_hybridCEOs(index, index_sums, X, R, Q, k, D, s, b, use_faiss_top_k=True)
-
-        print('top indices 0: ', top_indices[0])
-        print('top indices 1: ', top_indices[1])
-
-        print('top distances 0: ', distances[0])
-        print('top distances 1: ', distances[1])
-
-        # TODO, add code here to save the index to disk and load it back, instead of re-indexing
-
-        _ = ceos.querying_hybridCEOs(index, index_sums, X, R, Q[:10], k, D, s, b, use_faiss_top_k=True)
-
-        # Averaged timing over N trials
-        trials = 10
-        total_ms = 0.0
-
-        for _ in range(trials):
-            R_new = np.random.normal(size=(D, X.shape[1])).astype(np.float32)  # Simulate a new R matrix
-            start = time.time()
-            _ = ceos.querying_hybridCEOs(index, index_sums, X, R_new, Q, k, D, s, b, use_faiss_top_k=True)
-            end = time.time()
-            total_ms += (end - start) * 1000  # milliseconds
-
-        print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
-
-        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_indices_k{k}.npy"
-        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_exact_distances_k{k}.npy"
+        
+        exact_indices_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_{metric_name}dist_exact_indices_k{k}.npy"
+        exact_distances_path = f"/workspace/CUDA-CEOs/CUDA-CEOs-py/tests/saved_results/{dataset_name}_{metric_name}dist_exact_distances_k{k}.npy"
 
         if os.path.exists(exact_indices_path) and os.path.exists(exact_distances_path):
             top_indices_exact = np.load(exact_indices_path)
             distances_exact = np.load(exact_distances_path)
         else:
-            top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+            print("Performing exact NNS...")
+            if metric_name == "inner_product":
+                top_indices_exact, distances_exact = au.perform_exact_nns(X, Q, k)
+            elif metric_name == "cosine":
+                X_copy = X / np.linalg.norm(X, axis=1, keepdims=True)
+                Q_copy = Q / np.linalg.norm(Q, axis=1, keepdims=True)
+                top_indices_exact, distances_exact = au.perform_exact_nns(X_copy, Q_copy, k)
+                
             np.save(exact_indices_path, top_indices_exact)
             np.save(exact_distances_path, distances_exact)
 
-        print('top indices exact 0: ', top_indices_exact[0])
-        print('top distances exact 0: ', distances_exact[0])
+        print("Exact NNS completed.")
 
-        recall_value = au.recall(top_indices, top_indices_exact, k)
+        b = 4000
 
-        print(f"Recall: {recall_value:.4f}")
+        _ = hybrid_ceos.query_s01(Q_torch, k, s, b)
 
-        print(np.dot(Q[0], X[top_indices[0, 5]]))
-        print(X[top_indices[0, 5]])
-        print(np.dot(Q[0], X[top_indices[0, 6]]))
-        print(X[top_indices[0, 6]])
-        
+        # Averaged timing over N trials
+        trials = 10
+        total_ms = 0.0
+        recall_total = 0.0
+
+        for _ in range(trials):
+            # R_new = np.random.normal(size=(D, X.shape[1])).astype(np.float32)  # Simulate a new R matrix
+            start = time.time()
+            top_indices,_ = hybrid_ceos.query_s01(Q_torch, k, s, b)
+            torch.cuda.synchronize()
+            end = time.time()
+            total_ms += (end - start) * 1000  # milliseconds
+
+            recall = au.recall(top_indices.cpu().numpy(), top_indices_exact, k)
+            recall_total += recall
+
+        print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
+        print(f"Avg recall over {trials} trials: {recall_total / trials:.4f}")
+        print(f"Time per query: {total_ms / trials / Q.shape[0] * 1000:.4f} μs")
