@@ -56,7 +56,7 @@ class coCEOsTest(unittest.TestCase):
 class hybridCEOsTest(unittest.TestCase):
 
     def test_for_real_dataset(self):
-        dataset_name = "nuswide" 
+        dataset_name = "yahoo" 
         X, Q = au.write_load_datasets.load_dataset(dataset_name)        
         D = 1024
         m = 150
@@ -64,9 +64,6 @@ class hybridCEOsTest(unittest.TestCase):
         s_0 = 1
         
         Q = Q[:1000]
-
-        X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-6)
-        X = Q / (np.linalg.norm(Q, axis=1, keepdims=True) + 1e-6)
 
         X_torch = torch.from_numpy(X).cuda()
         Q_torch = torch.from_numpy(Q).cuda()
@@ -78,9 +75,10 @@ class hybridCEOsTest(unittest.TestCase):
         print(f"\nHist kernel shared memory size: {hybrid_ceos.get_hist_kernel_shared_memory(s)} bytes")
 
         hybrid_ceos.set_use_low_memory_hist(True)
-        hybrid_ceos.set_verbose(False)
+        hybrid_ceos.set_verbose(True)
         hybrid_ceos.set_time_it(False)
         hybrid_ceos.set_hist_kernel_max_dynamic_memory(96 * 1024)
+        # hybrid_ceos.set_use_hybrid_cpu_indexing(True)
 
         metric_name = str(distance_metric).split(".")[-1].lower()
 
@@ -142,6 +140,7 @@ class hybridCEOsTest(unittest.TestCase):
             total_ms += (end - start) * 1000  # milliseconds
 
             recall = au.recall(top_indices.cpu().numpy(), top_indices_exact, k)
+            print(f"Trial recall: {recall:.4f}")
             recall_total += recall
 
         print(f"Avg querying time over {trials} trials: {total_ms / trials:.3f} ms")
